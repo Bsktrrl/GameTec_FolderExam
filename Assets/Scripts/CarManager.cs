@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
 public class CarManager : MonoBehaviour
@@ -147,11 +145,12 @@ public class CarManager : MonoBehaviour
         timeAlive = 0;
 
         //Build a new list containing the best performing cards, based on time alive in the generation
-        List<GameObject> newParents = new List<GameObject>();
+        List<GameObject> parent = new List<GameObject>();
+        int parentIndex = 0;
         for (int n = 0; n < parentsAmount; n++)
         {
             float bestTimeLastingCar = 0;
-            int parentIndex = 0;
+            parentIndex = 0;
 
             //Get the car with the best time
             for (int i = 0; i < carList.Count; i++)
@@ -164,57 +163,48 @@ public class CarManager : MonoBehaviour
             }
 
             //Add this car to the list
-            newParents.Add(carList[parentIndex]);
+            parent.Add(carList[parentIndex]);
         }
 
-        //Destroy the rest of the cars
+        //Destroy the all cars from the original list
         for (int i = carList.Count - 1; i >= 0; i--)
         {
             Destroy(carList[i]);
             carList.RemoveAt(i);
         }
 
-        //Mutate the best cars into a new generation
-        int newParent_index = 0;
+        parentIndex = 0;
 
+        //Mutate the best cars to make better prerequisites for the next generation of cars
         for (int i = parentsAmount; i < carsToSpawn; i++)
         {
+            //Add the remaining cars to reach the desired spawned cars
             AddCar(carSpawnPosition);
 
+            //Set the car to be able to train
             Car child = carList[carList.Count - 1].GetComponent<Car>();
             child.training = training;
 
-            Car parent = newParents[newParent_index].GetComponent<Car>();
-            child.brain = parent.brain.Copy();
+            //Make a parent, which the child-car will look up to and mimic, to make higher chances of lasting longer
+            Car _parent = parent[parentIndex].GetComponent<Car>();
+            child.brain = _parent.brain.Copy();
             child.brain.GeneticAlgorithm();
-            newParent_index = (newParent_index + 1) % newParents.Count;
+            parentIndex = (parentIndex + 1) % parent.Count;
         }
 
-        for (int i = newParents.Count - 1; i >= 0; i--)
+        //Repeat the process, this time for the spots of the parent
+        for (int i = parent.Count - 1; i >= 0; i--)
         {
             AddCar(carSpawnPosition);
 
             Car child = carList[carList.Count - 1].GetComponent<Car>();
             child.training = training;
 
-            child.brain = newParents[i].GetComponent<Car>().brain.Copy();
-            if (i == 0)
-            {
-                child.isReadyForDebug = true;
-            }
+            child.brain = parent[i].GetComponent<Car>().brain.Copy();
 
-            GameObject parentToDestroy = newParents[i];
-            newParents.RemoveAt(i);
-            Destroy(parentToDestroy);
+            //Destroy the parent
+            Destroy(parent[i]);
+            parent.RemoveAt(i);
         }
-
-        //Set new spawn position of the new generation
-        //for (int i = 0; i < carsToSpawn; i++)
-        //{
-        //    carList[i].transform.position = carSpawnPosition;
-        //    Car car = carList[i].GetComponent<Car>();
-        //    car.carPosition = carSpawnPosition;
-        //    car.isAlive = true;
-        //}
     }
 }

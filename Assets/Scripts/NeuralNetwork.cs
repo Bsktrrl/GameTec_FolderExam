@@ -1,8 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-
 
 public enum NetworkTrainingModel
 {
@@ -12,7 +9,6 @@ public enum NetworkTrainingModel
 
 public class NeuralNetwork 
 {
-
     // We want to make a fully connected network
 
     // Number of nodes in each layer
@@ -37,6 +33,10 @@ public class NeuralNetwork
     // Bias'
     List<Matrix> hidden_biases = new List<Matrix>();
     Matrix output_bias;
+
+
+    //--------------------
+
 
     public void Setup(int I, List<int> H, int O)
     {
@@ -269,9 +269,11 @@ public class NeuralNetwork
         Matrix input_hidden_weight_delta = new Matrix(Matrix.MatrixProduct(hidden_gradient.mat, input_T.mat));
         input_hidden_weights = input_hidden_weights.Add(input_hidden_weight_delta);
         hidden_biases[0] = hidden_biases[0].Add(hidden_gradient);
-
-
     }
+
+
+    //--------------------
+
 
     public void ResizeLayer(int nodes_to_add, int layer_index)
     {
@@ -322,6 +324,10 @@ public class NeuralNetwork
 
     }
 
+
+    //--------------------
+
+
     public void AddHiddenLayer(int size)
     {
         //Debug.Log("Adding a layer with size " + size);
@@ -353,6 +359,8 @@ public class NeuralNetwork
         //Debug.Log(text);
     }
 
+
+    //--------------------
 
 
     public void GeneticAlgorithm()
@@ -440,6 +448,11 @@ public class NeuralNetwork
         }
 
     }
+
+
+    //--------------------
+
+
     public NeuralNetwork Copy()
     {
         NeuralNetwork result = new NeuralNetwork();
@@ -472,6 +485,9 @@ public class NeuralNetwork
     }
 
 
+    //--------------------
+
+
     public int GetInputs()
     {
         return num_nodes_input;
@@ -492,5 +508,4 @@ public class NeuralNetwork
     {
         training_model = model;
     }
-
 }
