@@ -5,6 +5,7 @@ public class CarManager : MonoBehaviour
 {
     public static CarManager instance; //Singleton
 
+    #region Variables
     [Header("Car Stats")]
     [SerializeField] GameObject car_Parent;
     [SerializeField] GameObject car_Prefab;
@@ -15,12 +16,15 @@ public class CarManager : MonoBehaviour
     public Vector3 carSpawnPosition = new Vector3(0, 0, -75);
 
     [Header("AI stats")]
-    [SerializeField] int carsAlive;
-    [SerializeField] float timeAlive;
-    [SerializeField] float highestTimeAlive;
-    [SerializeField] int generation = 1;
+    public int carsAlive;
+    public float timeAlive;
+    public float highestTimeAlive;
+    public float bestTimeTotal = 0;
+    public int generation = 1;
     [SerializeField] bool training = true;
     [SerializeField] int parentsAmount = 2;
+    public bool endOfgeneration;
+    #endregion
 
 
     //--------------------
@@ -121,7 +125,12 @@ public class CarManager : MonoBehaviour
         if (allCarsHasCrashed)
         {
             MakeNewGeneration();
-            generation++;
+
+            if (highestTimeAlive > 2)
+            {
+                generation++;
+                endOfgeneration = true;
+            }
         }
     }
     void CheckCarsAlive()
@@ -142,6 +151,12 @@ public class CarManager : MonoBehaviour
     {
         //Set Highest Time to have a number to compare with
         highestTimeAlive = timeAlive;
+
+        if (highestTimeAlive > bestTimeTotal)
+        {
+            bestTimeTotal = highestTimeAlive;
+        }
+
         timeAlive = 0;
 
         //Build a new list containing the best performing cards, based on time alive in the generation
@@ -188,7 +203,7 @@ public class CarManager : MonoBehaviour
             //Make a parent, which the child-car will look up to and mimic, to make higher chances of lasting longer
             Car _parent = parent[parentIndex].GetComponent<Car>();
             child.brain = _parent.brain.Copy();
-            child.brain.GeneticAlgorithm();
+            child.brain.Mutate();
             parentIndex = (parentIndex + 1) % parent.Count;
         }
 

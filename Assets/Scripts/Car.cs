@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class Car : MonoBehaviour
 {
+    #region Variables
     [Header("Car Stats")]
     public NeuralNetwork brain;
 
@@ -25,6 +26,7 @@ public class Car : MonoBehaviour
     [Header("Training")]
     public bool training = true;
     [SerializeField] float learningDeviation = 0.8f;
+    #endregion
 
 
     //--------------------
@@ -58,7 +60,7 @@ public class Car : MonoBehaviour
         if (brain == null)
         {
             brain = new NeuralNetwork();
-            brain.Setup(5, new List<int>() { 32 }, 2);
+            brain.StartUp(5, new List<int>() { 32 }, 2);
         }
     }
 

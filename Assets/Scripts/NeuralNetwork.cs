@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum NetworkTrainingModel
+public enum TrainingModel
 {
     Sigmoid,
     Relu
@@ -9,319 +9,328 @@ public enum NetworkTrainingModel
 
 public class NeuralNetwork 
 {
-    // We want to make a fully connected network
+    #region variables
+    //Nodes in each layer of the network
+    int inputNodes_Amount = 0;
+    List<int> hiddenNodesList = new List<int>();
+    int outputNodes_Amount = 0;
 
-    // Number of nodes in each layer
-    int num_nodes_input = 0;
-    List<int> num_nodes_hidden = new List<int>();
-    int num_nodes_output = 0;
+    float learningRate = 0.1f;
 
-    float learning_rate = 0.1f;
+    TrainingModel trainingModel = TrainingModel.Sigmoid;
 
-    NetworkTrainingModel training_model = NetworkTrainingModel.Sigmoid;
+    //Weighs to change the numbers going to different parts of the network
+    Matrix hiddenWeights_Input;
+    List<Matrix> hiddenWeightList = new List<Matrix>();
+    Matrix hiddenWeights_Output;
 
-    // Weights
-    Matrix input_hidden_weights;
-    List<Matrix> hidden_weights = new List<Matrix>();
-    Matrix hidden_output_weights;
+    //Layers of Neurons
+    Matrix layer_Imput = new Matrix();
+    List<Matrix> hiddenLayerList = new List<Matrix>();
+    Matrix layer_Output = new Matrix();
 
-    // "Neuron" Layers
-    Matrix input_layer = new Matrix();
-    List<Matrix> hidden_layers = new List<Matrix>();
-    Matrix output_layer = new Matrix();
-
-    // Bias'
-    List<Matrix> hidden_biases = new List<Matrix>();
-    Matrix output_bias;
+    //Bias
+    List<Matrix> hiddenBiasList = new List<Matrix>();
+    Matrix bias_Output;
+    #endregion
 
 
     //--------------------
 
 
-    public void Setup(int I, List<int> H, int O)
+    public void StartUp(int _inputNodes_Amount, List<int> _hiddenNodesList, int _outputNodes_Amount)
     {
-        num_nodes_hidden = H;
-        num_nodes_input = I;
-        num_nodes_output = O;
+        hiddenNodesList = _hiddenNodesList;
+        inputNodes_Amount = _inputNodes_Amount;
+        outputNodes_Amount = _outputNodes_Amount;
 
-        // Bias'
-        hidden_biases = new List<Matrix>();
-        for (int i = 0; i < H.Count; i++)
+        //Set Bias Output
+        hiddenBiasList = new List<Matrix>();
+
+        for (int i = 0; i < _hiddenNodesList.Count; i++)
         {
-            hidden_biases.Add(new Matrix(H[i], 1));
-            hidden_biases[i].Randomize();
+            hiddenBiasList.Add(new Matrix(_hiddenNodesList[i], 1));
+            hiddenBiasList[i].Randomize();
         }
-        output_bias = new Matrix(O, 1);
-        output_bias.Randomize();
 
-        // Weights
-        input_hidden_weights = new Matrix(H[0], I);
-        input_hidden_weights.Randomize();
-        hidden_weights = new List<Matrix>();
-        for (int i = 1; i < H.Count; i++)
+        bias_Output = new Matrix(_outputNodes_Amount, 1);
+        bias_Output.Randomize();
+
+        //Set Output Weights
+        hiddenWeights_Input = new Matrix(_hiddenNodesList[0], _inputNodes_Amount);
+        hiddenWeights_Input.Randomize();
+        hiddenWeightList = new List<Matrix>();
+
+        for (int i = 1; i < _hiddenNodesList.Count; i++)
         {
-            hidden_weights.Add(new Matrix(H[i], H[i - 1]));
-            hidden_weights[i - 1].Randomize();
+            hiddenWeightList.Add(new Matrix(_hiddenNodesList[i], _hiddenNodesList[i - 1]));
+            hiddenWeightList[i - 1].Randomize();
         }
-        hidden_output_weights = new Matrix(O, H[H.Count - 1]);
-        hidden_output_weights.Randomize();
+
+        hiddenWeights_Output = new Matrix(_outputNodes_Amount, _hiddenNodesList[_hiddenNodesList.Count - 1]);
+        hiddenWeights_Output.Randomize();
 
 
-        // Layers
-        input_layer = new Matrix(I, 1);
+        //Let Output Layers
+        layer_Imput = new Matrix(_inputNodes_Amount, 1);
+        hiddenLayerList = new List<Matrix>();
 
-        hidden_layers = new List<Matrix>();
-        for (int i = 0; i < H.Count; i++)
+        for (int i = 0; i < _hiddenNodesList.Count; i++)
         { 
-            hidden_layers.Add(new Matrix(H[i], 1));
+            hiddenLayerList.Add(new Matrix(_hiddenNodesList[i], 1));
         }
 
-        output_layer = new Matrix(O,1);
+        layer_Output = new Matrix(_outputNodes_Amount,1);
     }
-
     public List<float> FeedForward(List<float> inputs)
     {
+        //Move data one step further into the network
 
-        // MULTI LAYERS
+        float[] inputList = inputs.ToArray();
+        Matrix matrix_Input = new Matrix(inputNodes_Amount, 1);
 
-        // Get this List of inputs in to a matrix
-        float[] input_array = inputs.ToArray();
-        Matrix input_matrix = new Matrix(num_nodes_input, 1);
-        for (int i = 0; i < input_matrix.rows; i++)
+        for (int i = 0; i < matrix_Input.rows; i++)
         {
-            input_matrix.mat[i][0] = input_array[i];
+            matrix_Input.mat[i][0] = inputList[i];
         }
-        input_layer = input_matrix;
 
+        layer_Imput = matrix_Input;
 
-        // Calculate the first hidden layer
-        hidden_layers[0] = new Matrix(Matrix.MatrixProduct(input_hidden_weights.mat, input_matrix.mat));
-        hidden_layers[0] = hidden_layers[0].Add(hidden_biases[0]);
-        switch(training_model)
+        //Setup the first element in the "hiddenLayerList"
+        hiddenLayerList[0] = new Matrix(Matrix.MatrixProduct(hiddenWeights_Input.mat, matrix_Input.mat));
+        hiddenLayerList[0] = hiddenLayerList[0].Add(hiddenBiasList[0]);
+
+        switch(trainingModel)
         {
-            case NetworkTrainingModel.Sigmoid:
-                hidden_layers[0] = hidden_layers[0].Sigmoid();
+            case TrainingModel.Sigmoid:
+                hiddenLayerList[0] = hiddenLayerList[0].Sigmoid();
                 break;
-            case NetworkTrainingModel.Relu:
-                hidden_layers[0] = hidden_layers[0].Relu();
+            case TrainingModel.Relu:
+                hiddenLayerList[0] = hiddenLayerList[0].Relu();
                 break;
+
             default:
                 break;
         }
 
-        // Loop through the rest of the hidden layers
-        for (int i = 1; i < hidden_layers.Count; i++)
+        //Go through the rest of the "hiddenLayerList" 
+        for (int i = 1; i < hiddenLayerList.Count; i++)
         {
-            hidden_layers[i] = new Matrix(Matrix.MatrixProduct(hidden_weights[i - 1].mat, hidden_layers[i - 1].mat));
-            hidden_layers[i] = hidden_layers[i].Add(hidden_biases[i]);
-            switch (training_model)
+            hiddenLayerList[i] = new Matrix(Matrix.MatrixProduct(hiddenWeightList[i - 1].mat, hiddenLayerList[i - 1].mat));
+            hiddenLayerList[i] = hiddenLayerList[i].Add(hiddenBiasList[i]);
+
+            switch (trainingModel)
             {
-                case NetworkTrainingModel.Sigmoid:
-                    hidden_layers[i] = hidden_layers[i].Sigmoid();
+                case TrainingModel.Sigmoid:
+                    hiddenLayerList[i] = hiddenLayerList[i].Sigmoid();
                     break;
-                case NetworkTrainingModel.Relu:
-                    hidden_layers[i] = hidden_layers[i].Relu();
+                case TrainingModel.Relu:
+                    hiddenLayerList[i] = hiddenLayerList[i].Relu();
                     break;
+
                 default:
                     break;
             }
         }
 
-        // Generate the output layer from the hidden layer
-        output_layer = new Matrix(Matrix.MatrixProduct(hidden_output_weights.mat, hidden_layers[hidden_layers.Count - 1].mat));
-        output_layer = output_layer.Add(output_bias);
-        switch (training_model)
+        //Get the layer_Output from the hidden layer
+        layer_Output = new Matrix(Matrix.MatrixProduct(hiddenWeights_Output.mat, hiddenLayerList[hiddenLayerList.Count - 1].mat));
+        layer_Output = layer_Output.Add(bias_Output);
+
+        switch (trainingModel)
         {
-            case NetworkTrainingModel.Sigmoid:
-                output_layer = output_layer.Sigmoid();
+            case TrainingModel.Sigmoid:
+                layer_Output = layer_Output.Sigmoid();
                 break;
-            case NetworkTrainingModel.Relu:
-                output_layer = output_layer.Relu();
+            case TrainingModel.Relu:
+                layer_Output = layer_Output.Relu();
                 break;
             default:
                 break;
         }
 
-        // Get the matrix into an array outputs
-        List<float> outputs = new List<float>();
-        for (int i = 0; i < output_layer.rows; i++)
+        //transfer the Matrix over to a List<float> of outputs
+        List<float> outputList = new List<float>();
+        for (int i = 0; i < layer_Output.rows; i++)
         {
-            outputs.Add(output_layer.mat[i][0]);
+            outputList.Add(layer_Output.mat[i][0]);
         }
-        return outputs;
 
-
-
+        return outputList;
     }
-
-    // This function does supervised learning
-    public void BackPropagate(List<float> output, List<float> target_outputs)
+    public void BackPropagate(List<float> output, List<float> direction_outputs)
     {
+        //Perform supervised learning by going backwards inthe network, feeding ned data based on the output
 
-        // Get this List of inputs in to a matrix
-        float[] output_array = output.ToArray();
-        Matrix output_matrix = new Matrix(output.Count, 1);
-        for (int i = 0; i < output_matrix.rows; i++)
+        //Make a new Matrix, feeding in the outputList of the network
+        float[] outputList = output.ToArray();
+        Matrix matrix_Output = new Matrix(output.Count, 1);
+
+        for (int i = 0; i < matrix_Output.rows; i++)
         {
-            output_matrix.mat[i][0] = output_array[i];
+            matrix_Output.mat[i][0] = outputList[i];
         }
 
-        // Calculate the output errors
-        Matrix output_errors = new Matrix(output.Count, 1);
-        for (int i = 0; i < target_outputs.Count && i < output.Count; i++)
+        #region Errors
+        //Find the error of the output
+        Matrix error_Output = new Matrix(output.Count, 1);
+        for (int i = 0; i < direction_outputs.Count && i < output.Count; i++)
         {
-            output_errors.mat[i][0] = target_outputs[i] - output[i];
+            error_Output.mat[i][0] = direction_outputs[i] - output[i];
         }
 
-        // Calculate the hidden errors
-        Matrix transposed_hidden_output_weights = hidden_output_weights.Transpose();
-        List<Matrix> transposed_hidden_weights_temp = new List<Matrix>();
-        List<Matrix> transposed_hidden_weights = new List<Matrix>();
-        for (int i = hidden_weights.Count - 1; i >= 0; i--)
-        {
-            transposed_hidden_weights_temp.Add(hidden_weights[i].Transpose());
-        }
-        for (int i = 0; i < hidden_weights.Count; i++)
-        {
-            transposed_hidden_weights.Add(transposed_hidden_weights_temp[i]);
-        }
+        //Find the hidden weights
+        Matrix hiddenOutpuWeight_Transposed = hiddenWeights_Output.Transpose();
+        List<Matrix> hiddenOutputWeight_TransposedList = new List<Matrix>();
+        List<Matrix> hiddenWeight_Transposed = new List<Matrix>();
 
-
-        List<Matrix> hidden_errors_temp = new List<Matrix>();
-        List<Matrix> hidden_errors = new List<Matrix>();
-        hidden_errors_temp.Add(new Matrix(Matrix.MatrixProduct(transposed_hidden_output_weights.mat, output_errors.mat)));
-        for (int i = 0; i < transposed_hidden_weights.Count; i++)
+        for (int i = hiddenWeightList.Count - 1; i >= 0; i--)
         {
-            hidden_errors_temp.Add(new Matrix(Matrix.MatrixProduct(transposed_hidden_weights[i].mat, hidden_errors_temp[i].mat)));
+            hiddenOutputWeight_TransposedList.Add(hiddenWeightList[i].Transpose());
         }
-        for (int i = hidden_errors_temp.Count - 1; i >= 0; i--)
+        for (int i = 0; i < hiddenWeightList.Count; i++)
         {
-            hidden_errors.Add(hidden_errors_temp[i]);
+            hiddenWeight_Transposed.Add(hiddenOutputWeight_TransposedList[i]);
         }
 
-        // Changing all the weights in the network based on this delta function
-        // Wdelta = lr * Layer2Error * Layer2' * Layer1^T , where layer 1 is earlier in the network than layer 2
+        //Find the hidden errors
+        List<Matrix> hiddenErrorList = new List<Matrix>();
+        List<Matrix> hiddenError_TempList = new List<Matrix>();
+        hiddenError_TempList.Add(new Matrix(Matrix.MatrixProduct(hiddenOutpuWeight_Transposed.mat, error_Output.mat)));
 
-        // OUTPUT LAYER
-        // Calculate the step direction and size of the "correction" - then add that corrections
+        for (int i = 0; i < hiddenWeight_Transposed.Count; i++)
+        {
+            hiddenError_TempList.Add(new Matrix(Matrix.MatrixProduct(hiddenWeight_Transposed[i].mat, hiddenError_TempList[i].mat)));
+        }
+        for (int i = hiddenError_TempList.Count - 1; i >= 0; i--)
+        {
+            hiddenErrorList.Add(hiddenError_TempList[i]);
+        }
+        #endregion
+
+        #region Output layer
+        //Find the directen to move the correction in, and the amount to correct with
         Matrix output_gradient = new Matrix();
-        switch (training_model)
+        switch (trainingModel)
         {
-            case NetworkTrainingModel.Sigmoid:
-                output_gradient = output_matrix.SigmoidPrime();
+            case TrainingModel.Sigmoid:
+                output_gradient = matrix_Output.SigmoidPrime();
                 break;
-            case NetworkTrainingModel.Relu:
-                output_gradient = output_matrix.ReluPrime();
+            case TrainingModel.Relu:
+                output_gradient = matrix_Output.ReluPrime();
                 break;
             default:
                 break;
         }
-        output_gradient = output_gradient.Multiply(output_errors);
-        output_gradient = output_gradient.Multiply(learning_rate);
 
-        Matrix hidden_T = hidden_layers[hidden_layers.Count - 1].Transpose();
+        output_gradient = output_gradient.Multiply(error_Output);
+        output_gradient = output_gradient.Multiply(learningRate);
+
+        //Add the correction
+        Matrix hidden_T = hiddenLayerList[hiddenLayerList.Count - 1].Transpose();
         Matrix hidden_output_weight_delta = new Matrix(Matrix.MatrixProduct(output_gradient.mat, hidden_T.mat));
-        hidden_output_weights = hidden_output_weights.Add(hidden_output_weight_delta);
-        output_bias = output_bias.Add(output_gradient);
 
+        hiddenWeights_Output = hiddenWeights_Output.Add(hidden_output_weight_delta);
+        bias_Output = bias_Output.Add(output_gradient);
+        #endregion
 
-
-        // HIDDEN LAYER
-        // Calculate the hidden gradient and add the correction
-        for (int i = hidden_layers.Count - 1; i >= 1; i--)
+        #region Hidden layers
+        //Find the hidden gradient and add it to the correction
+        for (int i = hiddenLayerList.Count - 1; i >= 1; i--)
         {
-            Matrix hiddens_gradient = new Matrix();
-            switch (training_model)
+            Matrix hiddenGradient = new Matrix();
+
+            switch (trainingModel)
             {
-                case NetworkTrainingModel.Sigmoid:
-                    hiddens_gradient = hidden_layers[i].SigmoidPrime();
+                case TrainingModel.Sigmoid:
+                    hiddenGradient = hiddenLayerList[i].SigmoidPrime();
                     break;
-                case NetworkTrainingModel.Relu:
-                    hiddens_gradient = hidden_layers[i].ReluPrime();
+                case TrainingModel.Relu:
+                    hiddenGradient = hiddenLayerList[i].ReluPrime();
                     break;
+
                 default:
                     break;
             }
-            hiddens_gradient = hiddens_gradient.Multiply(hidden_errors[i]);
-            hiddens_gradient = hiddens_gradient.Multiply(learning_rate);
 
-            Matrix hiddens_T = hidden_layers[i - 1].Transpose();
-            Matrix hidden_weights_delta = new Matrix(Matrix.MatrixProduct(hiddens_gradient.mat, hiddens_T.mat));
-            hidden_weights[i - 1] = hidden_weights[i - 1].Add(hidden_weights_delta);
-            hidden_biases[i] = hidden_biases[i].Add(hiddens_gradient);
+            hiddenGradient = hiddenGradient.Multiply(hiddenErrorList[i]);
+            hiddenGradient = hiddenGradient.Multiply(learningRate);
+
+            Matrix hiddenTransposed = hiddenLayerList[i - 1].Transpose();
+            Matrix hiddenWeights_Delta = new Matrix(Matrix.MatrixProduct(hiddenGradient.mat, hiddenTransposed.mat));
+
+            hiddenWeightList[i - 1] = hiddenWeightList[i - 1].Add(hiddenWeights_Delta);
+            hiddenBiasList[i] = hiddenBiasList[i].Add(hiddenGradient);
         }
-        Matrix hidden_gradient = new Matrix();
-        switch (training_model)
+
+        //Find the directen to move the correction in, and the amount to correct with
+        Matrix gradient_Hidden = new Matrix();
+        switch (trainingModel)
         {
-            case NetworkTrainingModel.Sigmoid:
-                hidden_gradient = hidden_layers[0].SigmoidPrime();
+            case TrainingModel.Sigmoid:
+                gradient_Hidden = hiddenLayerList[0].SigmoidPrime();
                 break;
-            case NetworkTrainingModel.Relu:
-                hidden_gradient = hidden_layers[0].ReluPrime();
+            case TrainingModel.Relu:
+                gradient_Hidden = hiddenLayerList[0].ReluPrime();
                 break;
             default:
                 break;
         }
-        hidden_gradient = hidden_gradient.Multiply(hidden_errors[0]);
-        hidden_gradient = hidden_gradient.Multiply(learning_rate);
 
-        Matrix input_T = input_layer.Transpose();
-        Matrix input_hidden_weight_delta = new Matrix(Matrix.MatrixProduct(hidden_gradient.mat, input_T.mat));
-        input_hidden_weights = input_hidden_weights.Add(input_hidden_weight_delta);
-        hidden_biases[0] = hidden_biases[0].Add(hidden_gradient);
+        gradient_Hidden = gradient_Hidden.Multiply(hiddenErrorList[0]);
+        gradient_Hidden = gradient_Hidden.Multiply(learningRate);
+
+        //Add the correction
+        Matrix inputTransposed = layer_Imput.Transpose();
+        Matrix hiddenWeight_InputDelta = new Matrix(Matrix.MatrixProduct(gradient_Hidden.mat, inputTransposed.mat));
+
+        hiddenWeights_Input = hiddenWeights_Input.Add(hiddenWeight_InputDelta);
+        hiddenBiasList[0] = hiddenBiasList[0].Add(gradient_Hidden);
+        #endregion
     }
 
 
     //--------------------
 
 
-    public void ResizeLayer(int nodes_to_add, int layer_index)
+    public void ResizeLayer(int nodesAmount, int index)
     {
-        //Debug.Log("Resizing layer " + layer_index + "; This layer has " + hidden_layers[layer_index].rows + " amount of rows");
-
-        // Bias'
-        if (layer_index < hidden_biases.Count)
+        //Get a Bias
+        if (index < hiddenBiasList.Count)
         {
-            hidden_biases[layer_index].AddNodes(nodes_to_add,0);
+            hiddenBiasList[index].AddNodes(nodesAmount,0);
         }
 
-
-        // Fix weights 
-
-        if (layer_index == 0)
+        //Adjust the weights
+        if (index == 0)
         {
-            input_hidden_weights.AddNodes(nodes_to_add, 0);
-            if (layer_index < hidden_layers.Count - 1)
+            hiddenWeights_Input.AddNodes(nodesAmount, 0);
+            if (index < hiddenLayerList.Count - 1)
             {
-                hidden_weights[layer_index].AddNodes(0, nodes_to_add);
-            }
-        }
-        if (layer_index == hidden_layers.Count - 1)
-        {
-            hidden_output_weights.AddNodes(0, nodes_to_add);
-            if (layer_index > 0)
-            {
-                hidden_weights[layer_index - 1].AddNodes(nodes_to_add, 0);
+                hiddenWeightList[index].AddNodes(0, nodesAmount);
             }
         }
 
-        if (layer_index > 0 && layer_index < hidden_layers.Count - 1)
+        if (index == hiddenLayerList.Count - 1)
         {
-            hidden_weights[layer_index - 1].AddNodes(nodes_to_add, 0);
-            hidden_weights[layer_index].AddNodes(0, nodes_to_add);
+            hiddenWeights_Output.AddNodes(0, nodesAmount);
+            if (index > 0)
+            {
+                hiddenWeightList[index - 1].AddNodes(nodesAmount, 0);
+            }
         }
 
-
-
-        // Fix hidden layer 
-        if (layer_index < hidden_layers.Count)
+        if (index > 0 && index < hiddenLayerList.Count - 1)
         {
-            hidden_layers[layer_index].AddNodes(nodes_to_add, 0);
+            hiddenWeightList[index - 1].AddNodes(nodesAmount, 0);
+            hiddenWeightList[index].AddNodes(0, nodesAmount);
         }
 
-
-        PrintStructure();
-
+        //Adjust Hidden layers
+        if (index < hiddenLayerList.Count)
+        {
+            hiddenLayerList[index].AddNodes(nodesAmount, 0);
+        }
     }
 
 
@@ -330,123 +339,113 @@ public class NeuralNetwork
 
     public void AddHiddenLayer(int size)
     {
-        //Debug.Log("Adding a layer with size " + size);
-        hidden_biases.Add(new Matrix(size, 1));
-        hidden_biases[hidden_biases.Count - 1].Randomize();
+        //Add a hidden layer with a given size
 
-        hidden_layers.Add(new Matrix(size, 1));
-        hidden_layers[hidden_layers.Count - 1].Randomize();
+        hiddenBiasList.Add(new Matrix(size, 1));
+        hiddenBiasList[hiddenBiasList.Count - 1].Randomize();
 
-        hidden_weights.Add(new Matrix(size, hidden_layers[hidden_layers.Count - 2].rows));
-        hidden_weights[hidden_weights.Count -1].Randomize();
+        hiddenLayerList.Add(new Matrix(size, 1));
+        hiddenLayerList[hiddenLayerList.Count - 1].Randomize();
 
-        hidden_output_weights = new Matrix(output_layer.rows, size);
-        hidden_output_weights.Randomize();
+        hiddenWeightList.Add(new Matrix(size, hiddenLayerList[hiddenLayerList.Count - 2].rows));
+        hiddenWeightList[hiddenWeightList.Count -1].Randomize();
 
-        PrintStructure();
-    }
-
-    public void PrintStructure()
-    {
-        string text = "Input nodes : " + input_layer.rows + "\n";
-
-        for (int i = 0; i < hidden_layers.Count; i++)
-        {
-            text += "Hidden Layer " + i + " : " + hidden_layers[i].rows + "\n";
-        }
-        text += "Output Layer : " + output_layer.rows + "\n";
-
-        //Debug.Log(text);
+        hiddenWeights_Output = new Matrix(layer_Output.rows, size);
+        hiddenWeights_Output.Randomize();
     }
 
 
     //--------------------
 
 
-    public void GeneticAlgorithm()
+    public void Mutate()
     {
-        int random_mutation_chance = UnityEngine.Random.Range(10, 100);
-        //Debug.Log(random_mutation_chance);
-        for (int n = 0; n < hidden_layers.Count; n++) 
+        //Make it possible to mutate the cars for the next generations, to give a chance of imporoved performance
+
+        int mutationPropability = UnityEngine.Random.Range(10, 100);
+
+        for (int n = 0; n < hiddenLayerList.Count; n++) 
         {
-            for (int i = 0; i < hidden_layers[n].rows; i++)
+            for (int i = 0; i < hiddenLayerList[n].rows; i++)
             {
                 int check = UnityEngine.Random.Range(0, 101);
-                if (check < random_mutation_chance)
+                if (check < mutationPropability)
                 {
-                    hidden_layers[n].Mutate(i, 0, Random.Range(1, 25));
+                    hiddenLayerList[n].Mutate(i, 0, Random.Range(1, 25));
                 }
             }
         }
 
-        for (int n = 0; n < hidden_weights.Count; n++)
+        for (int n = 0; n < hiddenWeightList.Count; n++)
         {
-            for (int i = 0; i < hidden_weights[n].rows; i++)
+            for (int i = 0; i < hiddenWeightList[n].rows; i++)
             {
 
-                for (int j = 0; j < hidden_weights[n].cols; j++)
+                for (int j = 0; j < hiddenWeightList[n].cols; j++)
                 {
                     int check = UnityEngine.Random.Range(0, 101);
-                    if (check < random_mutation_chance)
+                    if (check < mutationPropability)
                     {
-                        hidden_weights[n].Mutate(i, j, Random.Range(1, 25));
+                        hiddenWeightList[n].Mutate(i, j, Random.Range(1, 25));
                     }
                 }
             }
         }
 
-        for (int i = 0; i < input_hidden_weights.rows; i++)
+        for (int i = 0; i < hiddenWeights_Input.rows; i++)
         {
 
-            for (int j = 0; j < input_hidden_weights.cols; j++)
+            for (int j = 0; j < hiddenWeights_Input.cols; j++)
             {
                 int check = UnityEngine.Random.Range(0, 101);
-                if (check < random_mutation_chance)
+                if (check < mutationPropability)
                 {
-                    input_hidden_weights.Mutate(i, j, Random.Range(1, 25));
+                    hiddenWeights_Input.Mutate(i, j, Random.Range(1, 25));
                 }
             }
         }
-        for (int i = 0; i < hidden_output_weights.rows; i++)
+
+        for (int i = 0; i < hiddenWeights_Output.rows; i++)
         {
 
-            for (int j = 0; j < hidden_output_weights.cols; j++)
+            for (int j = 0; j < hiddenWeights_Output.cols; j++)
             {
                 int check = UnityEngine.Random.Range(0, 101);
-                if (check < random_mutation_chance)
+                if (check < mutationPropability)
                 {
-                    hidden_output_weights.Mutate(i, j, Random.Range(1, 25));
+                    hiddenWeights_Output.Mutate(i, j, Random.Range(1, 25));
                 }
             }
         }
-        for (int n = 0; n < hidden_biases.Count; n++)
+
+        for (int n = 0; n < hiddenBiasList.Count; n++)
         {
-            for (int i = 0; i < hidden_biases[n].rows; i++)
+            for (int i = 0; i < hiddenBiasList[n].rows; i++)
             {
 
-                for (int j = 0; j < hidden_biases[n].cols; j++)
+                for (int j = 0; j < hiddenBiasList[n].cols; j++)
                 {
                     int check = UnityEngine.Random.Range(0, 101);
-                    if (check < random_mutation_chance)
+                    if (check < mutationPropability)
                     {
-                        hidden_biases[n].Mutate(i, j, Random.Range(1, 25));
+                        hiddenBiasList[n].Mutate(i, j, Random.Range(1, 25));
                     }
                 }
             }
         }
-        for (int i = 0; i < output_bias.rows; i++)
+
+        for (int i = 0; i < bias_Output.rows; i++)
         {
 
-            for (int j = 0; j < output_bias.cols; j++)
+            for (int j = 0; j < bias_Output.cols; j++)
             {
                 int check = UnityEngine.Random.Range(0, 101);
-                if (check < random_mutation_chance)
+                if (check < mutationPropability)
                 {
-                    output_bias.Mutate(i, j, Random.Range(1,25));
+                    bias_Output.Mutate(i, j, Random.Range(1,25));
                 }
             }
         }
-
     }
 
 
@@ -455,57 +454,37 @@ public class NeuralNetwork
 
     public NeuralNetwork Copy()
     {
-        NeuralNetwork result = new NeuralNetwork();
+        //Copy the abilities of a NeuronNetwork from a parent into a child
 
-        for (int i = 0; i < hidden_biases.Count; i++)
+        NeuralNetwork networkToCopy = new NeuralNetwork();
+
+        for (int i = 0; i < hiddenBiasList.Count; i++)
         {
-            result.hidden_biases.Add(new Matrix(hidden_biases[i].mat));
+            networkToCopy.hiddenBiasList.Add(new Matrix(hiddenBiasList[i].mat));
         }
-        result.output_bias = new Matrix(output_bias.mat);
 
-        result.input_hidden_weights = new Matrix(input_hidden_weights.mat);
-        for (int i = 0; i < hidden_weights.Count; i++)
+        networkToCopy.bias_Output = new Matrix(bias_Output.mat);
+        networkToCopy.hiddenWeights_Input = new Matrix(hiddenWeights_Input.mat);
+
+        for (int i = 0; i < hiddenWeightList.Count; i++)
         {
-            result.hidden_weights.Add(new Matrix(hidden_weights[i].mat));
+            networkToCopy.hiddenWeightList.Add(new Matrix(hiddenWeightList[i].mat));
         }
-        result.hidden_output_weights = new Matrix(hidden_output_weights.mat);
 
-        result.input_layer = new Matrix(hidden_output_weights.mat);
-        for (int i = 0; i < hidden_layers.Count; i++)
+        networkToCopy.hiddenWeights_Output = new Matrix(hiddenWeights_Output.mat);
+        networkToCopy.layer_Imput = new Matrix(hiddenWeights_Output.mat);
+
+        for (int i = 0; i < hiddenLayerList.Count; i++)
         {
-            result.hidden_layers.Add(new Matrix(hidden_layers[i].mat));
+            networkToCopy.hiddenLayerList.Add(new Matrix(hiddenLayerList[i].mat));
         }
-        result.output_layer = new Matrix(hidden_output_weights.mat);
 
-        result.num_nodes_hidden = num_nodes_hidden;
-        result.num_nodes_input = num_nodes_input;
-        result.num_nodes_output = num_nodes_output;
+        networkToCopy.layer_Output = new Matrix(hiddenWeights_Output.mat);
 
-        return result;
-    }
+        networkToCopy.hiddenNodesList = hiddenNodesList;
+        networkToCopy.inputNodes_Amount = inputNodes_Amount;
+        networkToCopy.outputNodes_Amount = outputNodes_Amount;
 
-
-    //--------------------
-
-
-    public int GetInputs()
-    {
-        return num_nodes_input;
-    }
-    public List<int> GetHidden()
-    {
-        return num_nodes_hidden;
-    }
-    public int GetOutput()
-    {
-        return num_nodes_output;
-    }
-    public NetworkTrainingModel GetTrainingModel()
-    {
-        return training_model;
-    }
-    public void SetTrainingModel(NetworkTrainingModel model)
-    {
-        training_model = model;
+        return networkToCopy;
     }
 }
