@@ -14,4 +14,4 @@ Each car performs 5 raycasts to check for nearby collisions (walls).
 The AI teaches the cars to move away from collisions and towards open areas by tweaking the weights in the Neural Networks' feedforward and backpropagation algorithms.
 
 ## Folder Assignment Report
-<a href="https://github.com/Bsktrrl/Bsktrrl.github.io/blob/main/Attachments/Spillmotorarkitektur_Raport.pdf" class="special">Bachelor Report</a>
+<a href="https://github.com/Bsktrrl/Bsktrrl.github.io/blob/main/Attachments/Spillmotorarkitektur_Raport.pdf" class="special">Folder Assignment Report for more insight</a>
