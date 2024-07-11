@@ -15,5 +15,9 @@ The AI teaches the cars to move away from collisions and towards open areas by t
 <br>
 <br>
 
+Only the 2 best performing cars are used as parents toward the next generation, making a new group containing 50 cars with a more tuned Input layer and weights in their Neural Network.
+<br>
+<br>
+
 ## Folder Assignment Report
 <a href="https://github.com/Bsktrrl/Bsktrrl.github.io/blob/main/Attachments/Spillmotorarkitektur_Raport.pdf" class="special">For more insight</a>
